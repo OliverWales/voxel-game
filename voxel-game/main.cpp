@@ -20,7 +20,7 @@ float lastX = SCR_WIDTH / 2.0;
 float lastY = SCR_HEIGHT / 2.0;
 
 // Camera
-glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraPos = glm::vec3(4.0f, 4.0f, 18.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
@@ -62,7 +62,7 @@ int main()
 
     // Read and compile shaders
     ShaderProgram shaderProgram("vertex.glsl", "fragment.glsl");
-    Chunk testChunk = Chunk();
+    Chunk testChunk = Chunk(0, 0, 0);
 
     // Vertex data and buffers
     unsigned int VBO, VAO, EBO;
@@ -107,10 +107,9 @@ int main()
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glEnable(GL_DEPTH_TEST);
 
-    // TODO: Fix vertex order and enable back-face culling
-    //glEnable(GL_CULL_FACE);
-    //glCullFace(GL_FRONT);
-    //glFrontFace(GL_CCW);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
@@ -150,7 +149,7 @@ void processKeyboardInput(GLFWwindow* window)
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
-    float cameraSpeed = 2.5 * deltaTime;
+    float cameraSpeed = 2.5f * deltaTime;
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         cameraPos += cameraSpeed * cameraFront;
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -161,8 +160,10 @@ void processKeyboardInput(GLFWwindow* window)
         cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
         cameraPos += cameraSpeed * cameraUp;
-    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
         cameraPos -= cameraSpeed * cameraUp;
+        std::cout << "(" << cameraPos.x << ", " << cameraPos.y << ", " << cameraPos.z << ")\n";
+    }
 }
 
 void processMouseInput(GLFWwindow* window, double xPos, double yPos)

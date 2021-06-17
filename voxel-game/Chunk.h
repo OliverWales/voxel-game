@@ -8,12 +8,12 @@
 class Chunk
 {
 public:
-	Chunk();
-	~Chunk() = default;
+	Chunk(int xPos, int yPos, int zPos);
 	Block get(int x, int y, int z);
 	void remesh();
 	std::vector<float> vertices;
 	std::vector<unsigned int> indices;
+	const int xPos, yPos, zPos;
 
 private:
 	void addBlockMesh(int x, int y, int z);
