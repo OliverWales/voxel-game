@@ -60,37 +60,9 @@ int main()
         return EXIT_FAILURE;
     }
 
-    // DEBUG
-    float test[] = { 1, 2, 3 };
-    std::cout << "Size: " << sizeof(test); // 12
-    std::vector<float> test1 = { 1, 2, 3 };
-    std::cout << "Size: " << sizeof(test1); // 32
-    std::cout << "Size: " << sizeof(test1.data()); // 8
-    std::cout << "Size: " << sizeof(float); // 4
-
     // Read and compile shaders
     ShaderProgram shaderProgram("vertex.glsl", "fragment.glsl");
     Chunk testChunk = Chunk();
-    std::cout << "Vertices: " << testChunk.vertices.size() << " Indices: " << testChunk.indices.size() << "\n";
-    for (auto vertex : testChunk.vertices) {
-        std::cout << vertex << ", ";
-    }
-    std::cout << "\n";
-    for (auto index : testChunk.indices) {
-        std::cout << index << ", ";
-    }
-    std::cout << "\n";
-
-    float* vertices = testChunk.vertices.data();
-    unsigned int* indices = testChunk.indices.data();
-    for (int i = 0; i < testChunk.vertices.size(); i++) {
-        std::cout << vertices[i] << ", ";
-    }
-    std::cout << "\n";
-    for (int i = 0; i < testChunk.indices.size(); i++) {
-        std::cout << indices[i] << ", ";
-    }
-    std::cout << "\n";
 
     // Vertex data and buffers
     unsigned int VBO, VAO, EBO;
@@ -101,13 +73,9 @@ int main()
     glBindVertexArray(VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    //glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    //glBufferData(GL_ARRAY_BUFFER, sizeof(testChunk.vertices), vertices, GL_STATIC_DRAW);
     glBufferData(GL_ARRAY_BUFFER, testChunk.vertices.size() * sizeof(float), testChunk.vertices.data(), GL_STATIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    //glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-    //glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(testChunk.indices), indices, GL_STATIC_DRAW);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, testChunk.indices.size() * sizeof(unsigned int), testChunk.indices.data(), GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);

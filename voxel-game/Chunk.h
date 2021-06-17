@@ -3,7 +3,7 @@
 
 #include <Vector>
 
-#define CHUNK_SIZE 16
+#define CHUNK_SIZE 8
 
 class Chunk
 {
@@ -16,5 +16,8 @@ public:
 	std::vector<unsigned int> indices;
 
 private:
+	void addBlockMesh(int x, int y, int z);
+
 	Block m_blocks[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
+	unsigned int m_index = 0;
 };
