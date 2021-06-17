@@ -23,7 +23,7 @@ float lastX = SCR_WIDTH / 2.0;
 float lastY = SCR_HEIGHT / 2.0;
 
 // Camera
-glm::vec3 cameraPos = glm::vec3(4.0f, 4.0f, 18.0f);
+glm::vec3 cameraPos = glm::vec3(8.0f, 8.0f, 32.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
@@ -65,7 +65,7 @@ int main()
 
     // Read and compile shaders
     ShaderProgram shaderProgram("vertex.glsl", "fragment.glsl");
-    Chunk testChunk = Chunk(0, 0, 0);
+    std::vector<Chunk> chunks = { Chunk(0, 0, 0), Chunk(1, 0, 0), Chunk(0, 0, 1), Chunk(1, 0, 1) };
 
     // Vertex data and buffers
     unsigned int VBO, VAO, EBO;
@@ -74,12 +74,6 @@ int main()
     glGenBuffers(1, &EBO);
 
     glBindVertexArray(VAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, testChunk.vertices.size() * sizeof(float), testChunk.vertices.data(), GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, testChunk.indices.size() * sizeof(unsigned int), testChunk.indices.data(), GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
@@ -143,6 +137,11 @@ int main()
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
 
+    // DEBUG
+    for (Chunk chunk : chunks) {
+        std::cout << "Verts: " << chunk.vertices.size() << " \tIndices: " << chunk.indices.size() << "\n";
+    }
+
     // Render loop
     while (!glfwWindowShouldClose(window))
     {
@@ -155,7 +154,16 @@ int main()
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glDrawElements(GL_TRIANGLES, testChunk.indices.size(), GL_UNSIGNED_INT, 0);
+
+        for (Chunk chunk : chunks) {
+            glBindBuffer(GL_ARRAY_BUFFER, VBO);
+            glBufferData(GL_ARRAY_BUFFER, chunk.vertices.size() * sizeof(float), chunk.vertices.data(), GL_STATIC_DRAW);
+
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, chunk.indices.size() * sizeof(unsigned int), chunk.indices.data(), GL_STATIC_DRAW);
+
+            glDrawElements(GL_TRIANGLES, chunk.indices.size(), GL_UNSIGNED_INT, 0);
+        }
 
         glfwSwapBuffers(window);
         glfwPollEvents();
