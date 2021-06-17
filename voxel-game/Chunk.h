@@ -3,7 +3,7 @@
 
 #include <Vector>
 
-#define CHUNK_SIZE 8
+#define CHUNK_SIZE 16
 
 class Chunk
 {

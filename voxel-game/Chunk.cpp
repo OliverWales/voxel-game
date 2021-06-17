@@ -2,14 +2,30 @@
 
 Chunk::Chunk(int xPos, int yPos, int zPos) : xPos(xPos), yPos(yPos), zPos(zPos)
 {
+	int height[CHUNK_SIZE][CHUNK_SIZE];
+
+	for (int x = 0; x < CHUNK_SIZE; x++)
+	{
+		for (int z = 0; z < CHUNK_SIZE; z++)
+		{
+			height[x][z] = (int)8 + 4 * (float)rand() / RAND_MAX;
+		}
+	}
+
 	for (int x = 0; x < CHUNK_SIZE; x++)
 	{
 		for (int y = 0; y < CHUNK_SIZE; y++)
 		{
 			for (int z = 0;	z < CHUNK_SIZE; z++)
 			{
-				if ((float)rand() / RAND_MAX - 2*(float)y / CHUNK_SIZE > 0.0) {
-					m_blocks[x][y][z].type = Block::BlockType::Rock;
+				if (y == height[x][z]) {
+					m_blocks[x][y][z].type = Block::BlockType::Grass;
+				}
+				else if (y < height[x][z] - 4) {
+					m_blocks[x][y][z].type = Block::BlockType::Stone;
+				}
+				else if (y < height[x][z]) {
+					m_blocks[x][y][z].type = Block::BlockType::Dirt;
 				}
 			}
 		}
@@ -34,7 +50,7 @@ void Chunk::remesh()
 		{
 			for (int z = 0; z < CHUNK_SIZE; z++)
 			{
-				if (m_blocks[x][y][z].type == Block::BlockType::Rock) {
+				if (m_blocks[x][y][z].type != Block::BlockType::Air) {
 					addBlockMesh(x, y, z);
 				}
 			}
@@ -100,8 +116,8 @@ void Chunk::addBlockMesh(int x, int y, int z)
 		float newVertices[] = {
 			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 0.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE,
 			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 0.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE,
-			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 0.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE,
-			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 0.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE,
+			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 1.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE,
+			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 1.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE,
 		};
 
 		vertices.insert(std::end(vertices), std::begin(newVertices), std::end(newVertices));

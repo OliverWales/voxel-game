@@ -10,7 +10,7 @@ public:
 		Air,
 		Grass,
 		Dirt,
-		Rock,
+		Stone,
 		NumberOfBlockTypes
 	};
 
