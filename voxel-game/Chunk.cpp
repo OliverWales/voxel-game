@@ -44,72 +44,143 @@ void Chunk::remesh()
 
 void Chunk::addBlockMesh(int x, int y, int z)
 {
-	float newVertices[] = {
-	xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 1.0f, 0.0f, 0.0f,
-	xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 1.0f, 0.0f, 0.0f,
-	xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 1.0f, 0.0f, 0.0f,
-	xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 1.0f, 0.0f, 0.0f,
-	xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 0.0f, 0.0f, 0.0f,
-	xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 0.0f, 0.0f, 0.0f,
-	xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 0.0f, 0.0f, 0.0f,
-	xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 0.0f, 0.0f, 0.0f
-	};
-	vertices.insert(std::end(vertices), std::begin(newVertices), std::end(newVertices));
+	Block block = m_blocks[x][y][z];
 
-	// 6 cases
+	// side 0: x = 0 (RIGHT)
 	if (x == 0 || m_blocks[x - 1][y][z].type == Block::BlockType::Air) {
+		std::pair<float, float> uv = block.getUV(0);
+		float u = uv.first;
+		float v = uv.second;
+		float newVertices[] = {
+			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 0.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE,
+			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 0.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE,
+			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 1.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE,
+			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 1.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE,
+		};
+
+		vertices.insert(std::end(vertices), std::begin(newVertices), std::end(newVertices));
+		 
 		unsigned int newIndices[] = {
-			m_index + 4, m_index + 0, m_index + 3,
-			m_index + 3, m_index + 7, m_index + 4
+			m_index + 0, m_index + 2, m_index + 1,
+			m_index + 0, m_index + 3, m_index + 2
 		};
 		
 		indices.insert(std::end(indices), std::begin(newIndices), std::end(newIndices));
+		m_index += 4;
 	}
 
+	// side 1: y = 0 (BOTTOM)
 	if (y == 0 || m_blocks[x][y - 1][z].type == Block::BlockType::Air) {
+		std::pair<float, float> uv = block.getUV(1);
+		float u = uv.first;
+		float v = uv.second;
+		float newVertices[] = {
+			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 0.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE,
+			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 0.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE,
+			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 1.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE,
+			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 1.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE,
+		};
+
+		vertices.insert(std::end(vertices), std::begin(newVertices), std::end(newVertices));
+
 		unsigned int newIndices[] = {
-			m_index + 4, m_index + 5, m_index + 1,
-			m_index + 1, m_index + 0, m_index + 4
+			m_index + 0, m_index + 2, m_index + 1,
+			m_index + 0, m_index + 3, m_index + 2
 		};
 
 		indices.insert(std::end(indices), std::begin(newIndices), std::end(newIndices));
+		m_index += 4;
 	}
 
+	// side 2: z = 0 (BACK)
 	if (z == 0 || m_blocks[x][y][z - 1].type == Block::BlockType::Air) {
+		std::pair<float, float> uv = block.getUV(2);
+		float u = uv.first;
+		float v = uv.second;
+		float newVertices[] = {
+			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 0.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE,
+			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 0.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE,
+			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 0.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE,
+			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 0.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE,
+		};
+
+		vertices.insert(std::end(vertices), std::begin(newVertices), std::end(newVertices));
+
 		unsigned int newIndices[] = {
-			m_index + 7, m_index + 6, m_index + 5,
-			m_index + 5, m_index + 4, m_index + 7
+			m_index + 0, m_index + 2, m_index + 1,
+			m_index + 0, m_index + 3, m_index + 2
 		};
 
 		indices.insert(std::end(indices), std::begin(newIndices), std::end(newIndices));
+		m_index += 4;
 	}
 
+	// side 3: x = 1 (RIGHT)
 	if (x == CHUNK_SIZE - 1 || m_blocks[x + 1][y][z].type == Block::BlockType::Air) {
+		std::pair<float, float> uv = block.getUV(3);
+		float u = uv.first;
+		float v = uv.second;
+		float newVertices[] = {
+			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 0.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE,
+			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 0.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE,
+			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 1.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE,
+			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 1.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE,
+		};
+
+		vertices.insert(std::end(vertices), std::begin(newVertices), std::end(newVertices));
+
 		unsigned int newIndices[] = {
-			m_index + 1, m_index + 5, m_index + 6,
-			m_index + 6, m_index + 2, m_index + 1
+			m_index + 0, m_index + 2, m_index + 1,
+			m_index + 0, m_index + 3, m_index + 2
 		};
 
 		indices.insert(std::end(indices), std::begin(newIndices), std::end(newIndices));
+		m_index += 4;
 	}
 
+	// side 4: y = 1 (TOP)
 	if (y == CHUNK_SIZE - 1 || m_blocks[x][y + 1][z].type == Block::BlockType::Air) {
+		std::pair<float, float> uv = block.getUV(4);
+		float u = uv.first;
+		float v = uv.second;
+		float newVertices[] = {
+			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 0.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE,
+			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 0.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE,
+			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 1.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE,
+			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 1.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE,
+		};
+
+		vertices.insert(std::end(vertices), std::begin(newVertices), std::end(newVertices));
+
 		unsigned int newIndices[] = {
-			m_index + 3, m_index + 2, m_index + 6,
-			m_index + 6, m_index + 7, m_index + 3
+			m_index + 0, m_index + 2, m_index + 1,
+			m_index + 0, m_index + 3, m_index + 2
 		};
 
 		indices.insert(std::end(indices), std::begin(newIndices), std::end(newIndices));
+		m_index += 4;
 	}
 
+	// side 5: z = 1 (FRONT)
 	if (z == CHUNK_SIZE - 1 || m_blocks[x][y][z + 1].type == Block::BlockType::Air) {
+		std::pair<float, float> uv = block.getUV(5);
+		float u = uv.first;
+		float v = uv.second;
+		float newVertices[] = {
+			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 0.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE,
+			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 0.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE,
+			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 1.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE,
+			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 1.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE,
+		};
+
+		vertices.insert(std::end(vertices), std::begin(newVertices), std::end(newVertices));
+
 		unsigned int newIndices[] = {
-			m_index + 0, m_index + 1, m_index + 2,
-			m_index + 2, m_index + 3, m_index + 0
+			m_index + 0, m_index + 2, m_index + 1,
+			m_index + 0, m_index + 3, m_index + 2
 		};
 
 		indices.insert(std::end(indices), std::begin(newIndices), std::end(newIndices));
+		m_index += 4;
 	}
-
-	m_index += 8;
 }

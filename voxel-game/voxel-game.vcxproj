@@ -166,6 +166,9 @@
     <None Include="fragment.glsl" />
     <None Include="vertex.glsl" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="atlas.png" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

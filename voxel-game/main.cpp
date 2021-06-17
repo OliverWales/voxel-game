@@ -160,10 +160,8 @@ void processKeyboardInput(GLFWwindow* window)
         cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
         cameraPos += cameraSpeed * cameraUp;
-    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
         cameraPos -= cameraSpeed * cameraUp;
-        std::cout << "(" << cameraPos.x << ", " << cameraPos.y << ", " << cameraPos.z << ")\n";
-    }
 }
 
 void processMouseInput(GLFWwindow* window, double xPos, double yPos)
