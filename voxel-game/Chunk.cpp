@@ -68,10 +68,10 @@ void Chunk::addBlockMesh(int x, int y, int z)
 		float u = uv.first;
 		float v = uv.second;
 		float newVertices[] = {
-			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 0.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE,
-			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 0.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE,
-			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 1.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE,
-			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 1.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE,
+			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 0.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE,	-1.0f, 0.0f, 0.0f,
+			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 0.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE,	-1.0f, 0.0f, 0.0f,
+			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 1.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE,	-1.0f, 0.0f, 0.0f,
+			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 1.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE,	-1.0f, 0.0f, 0.0f
 		};
 
 		vertices.insert(std::end(vertices), std::begin(newVertices), std::end(newVertices));
@@ -91,10 +91,10 @@ void Chunk::addBlockMesh(int x, int y, int z)
 		float u = uv.first;
 		float v = uv.second;
 		float newVertices[] = {
-			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 0.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE,
-			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 0.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE,
-			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 1.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE,
-			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 1.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE,
+			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 0.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE, 0.0f, -1.0f, 0.0f,
+			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 0.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE, 0.0f, -1.0f, 0.0f,
+			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 1.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE, 0.0f, -1.0f, 0.0f,
+			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 1.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE, 0.0f, -1.0f, 0.0f
 		};
 
 		vertices.insert(std::end(vertices), std::begin(newVertices), std::end(newVertices));
@@ -114,10 +114,10 @@ void Chunk::addBlockMesh(int x, int y, int z)
 		float u = uv.first;
 		float v = uv.second;
 		float newVertices[] = {
-			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 0.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE,
-			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 0.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE,
-			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 1.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE,
-			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 1.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE,
+			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 0.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE, 0.0f, 0.0f, -1.0f,
+			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 0.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE, 0.0f, 0.0f, -1.0f,
+			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 1.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE, 0.0f, 0.0f, -1.0f,
+			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 1.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE, 0.0f, 0.0f, -1.0f
 		};
 
 		vertices.insert(std::end(vertices), std::begin(newVertices), std::end(newVertices));
@@ -137,10 +137,10 @@ void Chunk::addBlockMesh(int x, int y, int z)
 		float u = uv.first;
 		float v = uv.second;
 		float newVertices[] = {
-			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 0.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE,
-			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 0.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE,
-			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 1.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE,
-			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 1.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE,
+			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 0.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE, 1.0f, 0.0f, 0.0f,
+			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 0.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE, 1.0f, 0.0f, 0.0f,
+			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 1.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE, 1.0f, 0.0f, 0.0f,
+			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 1.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE, 1.0f, 0.0f, 0.0f
 		};
 
 		vertices.insert(std::end(vertices), std::begin(newVertices), std::end(newVertices));
@@ -160,10 +160,10 @@ void Chunk::addBlockMesh(int x, int y, int z)
 		float u = uv.first;
 		float v = uv.second;
 		float newVertices[] = {
-			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 0.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE,
-			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 0.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE,
-			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 1.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE,
-			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 1.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE,
+			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 0.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE, 0.0f, 1.0f, 0.0f,
+			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 0.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE, 0.0f, 1.0f, 0.0f,
+			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 1.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE, 0.0f, 1.0f, 0.0f,
+			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 0.0f, u + 1.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE, 0.0f, 1.0f, 0.0f
 		};
 
 		vertices.insert(std::end(vertices), std::begin(newVertices), std::end(newVertices));
@@ -183,10 +183,10 @@ void Chunk::addBlockMesh(int x, int y, int z)
 		float u = uv.first;
 		float v = uv.second;
 		float newVertices[] = {
-			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 0.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE,
-			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 0.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE,
-			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 1.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE,
-			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 1.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE,
+			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 0.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE, 0.0f, 0.0f, 1.0f,
+			xPos * CHUNK_SIZE + x + 0.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 0.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE, 0.0f, 0.0f, 1.0f,
+			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 1.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 1.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE, 0.0f, 0.0f, 1.0f,
+			xPos * CHUNK_SIZE + x + 1.0f, yPos * CHUNK_SIZE + y + 0.0f, zPos * CHUNK_SIZE + z + 1.0f, u + 1.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE, 0.0f, 0.0f, 1.0f
 		};
 
 		vertices.insert(std::end(vertices), std::begin(newVertices), std::end(newVertices));
