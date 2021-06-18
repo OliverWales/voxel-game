@@ -9,7 +9,7 @@ class Chunk
 {
 public:
 	Chunk(short int xPos, short int yPos, short int zPos); // initialise chunk seed array
-	void generate(Chunk* neighbours[6]); // perform world-gen (requires neighbours' seeds)
+	void generate(Chunk* neighbours[4]); // perform world-gen (requires neighbours' seeds)
 	void mesh(); // generate mesh (requires neighbours' blocks)
 
 	long long getId(); // get ID unique to chunk

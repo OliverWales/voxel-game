@@ -1,11 +1,16 @@
 #include "Chunk.h"
 
+#include <iostream>
+
 Chunk::Chunk(short int xPos, short int yPos, short int zPos)
 	: m_x(xPos)
 	, m_y(yPos)
 	, m_z(zPos)
-	, m_id(((long long)m_x) << 32 + ((long long)m_y) << 16 + m_z)
+	, m_id(11*xPos + 13*yPos + 17*zPos)
 {
+	srand(m_id); // FIXME: Cast means current ID is a bad hash
+	std::cout << m_id << " - " << (unsigned int)(m_id) << "\n";
+
 	for (int x = 0; x < CHUNK_SIZE; x++)
 	{
 		for (int z = 0; z < CHUNK_SIZE; z++)
@@ -15,10 +20,47 @@ Chunk::Chunk(short int xPos, short int yPos, short int zPos)
 	}
 }
 
-void Chunk::generate(Chunk* neighbours[6])
+void Chunk::generate(Chunk* neighbours[4])
 {
-	// TODO: Generate perlin noise using neighbour seeds and use the result to perform worldgen
+	// TODO: Use neighbouring seeds to generate continuous noise over chunk boundaries
 	// TODO: Add storage of modifications to base world and recreate them here
+
+	float smooth_noise[CHUNK_SIZE][CHUNK_SIZE];
+	int octaves = 3;
+	float bias = 3.0f;
+
+	for (int x = 0; x < CHUNK_SIZE; x++)
+	{
+		for (int z = 0; z < CHUNK_SIZE; z++)
+		{
+			float noise = 0.0f;
+			float scale = 1.0f;
+			float scaleTot = 0.0f;
+
+			for (int octave = 0; octave < octaves; octave++)
+			{
+				int stride = CHUNK_SIZE >> octave;
+				int x1 = (x / stride) * stride;
+				int z1 = (z / stride) * stride;
+
+				int x2 = (x1 + stride) % CHUNK_SIZE;
+				int z2 = (z1 + stride) % CHUNK_SIZE;
+
+				float blendX = (float)(x - x1) / (float)stride;
+				float blendZ = (float)(z - z1) / (float)stride;
+
+				float fSampleT = (1.0f - blendX) * m_seed[x1][z1] + blendX * m_seed[x1][z2];
+				float fSampleB = (1.0f - blendX) * m_seed[x2][z1] + blendX * m_seed[x2][z2];
+
+				noise += (blendZ * (fSampleB - fSampleT) + fSampleT) * scale;
+				scaleTot += scale;
+				scale /= bias;
+			}
+
+			// Scale to seed range
+			smooth_noise[x][z] = noise / scaleTot; // normalise to range 0-1
+		}
+	}
 
 	for (int x = 0; x < CHUNK_SIZE; x++)
 	{
@@ -26,10 +68,14 @@ void Chunk::generate(Chunk* neighbours[6])
 		{
 			for (int z = 0; z < CHUNK_SIZE; z++)
 			{
-				if (y == 15) {
+				int h = smooth_noise[x][z] * 8;
+				if (y + h > 15) {
+					m_blocks[x][y][z].type = Block::BlockType::Air;
+				}
+				else if (y + h == 15) {
 					m_blocks[x][y][z].type = Block::BlockType::Grass;
 				}
-				else if (y > 10) {
+				else if (y + h > 12) {
 					m_blocks[x][y][z].type = Block::BlockType::Dirt;
 				}
 				else {
@@ -86,10 +132,10 @@ void Chunk::addBlockMesh(int x, int y, int z)
 		float u = uv.first;
 		float v = uv.second;
 		float newVertices[] = {
-			m_x * CHUNK_SIZE + x + 0.0f, m_y * CHUNK_SIZE + y + 0.0f, m_z * CHUNK_SIZE + z + 0.0f, u + 0.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE,	-1.0f, 0.0f, 0.0f,
-			m_x * CHUNK_SIZE + x + 0.0f, m_y * CHUNK_SIZE + y + 1.0f, m_z * CHUNK_SIZE + z + 0.0f, u + 0.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE,	-1.0f, 0.0f, 0.0f,
-			m_x * CHUNK_SIZE + x + 0.0f, m_y * CHUNK_SIZE + y + 1.0f, m_z * CHUNK_SIZE + z + 1.0f, u + 1.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE,	-1.0f, 0.0f, 0.0f,
-			m_x * CHUNK_SIZE + x + 0.0f, m_y * CHUNK_SIZE + y + 0.0f, m_z * CHUNK_SIZE + z + 1.0f, u + 1.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE,	-1.0f, 0.0f, 0.0f
+			m_x * CHUNK_SIZE + x + 0.0f, m_y * CHUNK_SIZE + y + 0.0f, m_z * CHUNK_SIZE + z + 0.0f, u + 0.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE, -1.0f, 0.0f, 0.0f,
+			m_x * CHUNK_SIZE + x + 0.0f, m_y * CHUNK_SIZE + y + 1.0f, m_z * CHUNK_SIZE + z + 0.0f, u + 0.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE, -1.0f, 0.0f, 0.0f,
+			m_x * CHUNK_SIZE + x + 0.0f, m_y * CHUNK_SIZE + y + 1.0f, m_z * CHUNK_SIZE + z + 1.0f, u + 1.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE, -1.0f, 0.0f, 0.0f,
+			m_x * CHUNK_SIZE + x + 0.0f, m_y * CHUNK_SIZE + y + 0.0f, m_z * CHUNK_SIZE + z + 1.0f, u + 1.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE, -1.0f, 0.0f, 0.0f
 		};
 
 		vertices.insert(std::end(vertices), std::begin(newVertices), std::end(newVertices));
@@ -183,7 +229,7 @@ void Chunk::addBlockMesh(int x, int y, int z)
 			m_x * CHUNK_SIZE + x + 0.0f, m_y * CHUNK_SIZE + y + 1.0f, m_z * CHUNK_SIZE + z + 1.0f, u + 1.0f / ATLAS_SIZE, v + 0.0f / ATLAS_SIZE, 0.0f, 1.0f, 0.0f,
 			m_x * CHUNK_SIZE + x + 0.0f, m_y * CHUNK_SIZE + y + 1.0f, m_z * CHUNK_SIZE + z + 0.0f, u + 1.0f / ATLAS_SIZE, v + 1.0f / ATLAS_SIZE, 0.0f, 1.0f, 0.0f
 		};
-
+		 
 		vertices.insert(std::end(vertices), std::begin(newVertices), std::end(newVertices));
 
 		unsigned int newIndices[] = {

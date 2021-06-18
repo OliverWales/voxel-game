@@ -23,7 +23,7 @@ float lastX = SCR_WIDTH / 2.0;
 float lastY = SCR_HEIGHT / 2.0;
 
 // Camera
-glm::vec3 cameraPos = glm::vec3(8.0f, 40.0f, 8.0f);
+glm::vec3 cameraPos = glm::vec3(0.0f, 40.0f, 0.0f); // start in centre of world at altitude
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
@@ -72,7 +72,11 @@ int main()
     const unsigned int shaderId = (*shaderProgram).getId();
 
     // Generate initial chunks
-    std::vector<Chunk*> chunks = { new Chunk(0, 0, 0) , new Chunk(1, 0, 0), new Chunk(0, 0, 1), new Chunk(1, 0, 1) };
+    std::vector<Chunk*> chunks = {
+        new Chunk(-1, 0, -1), new Chunk(0, 0, -1), new Chunk(1, 0, -1),
+        new Chunk(-1, 0,  0), new Chunk(0, 0,  0), new Chunk(1, 0,  0),
+        new Chunk(-1, 0,  1), new Chunk(0, 0,  1), new Chunk(1, 0,  1),
+    };
     for (Chunk* chunk : chunks) {
         chunk->generate(nullptr); // TODO: Pass actual neighbours
         chunk->mesh();
