@@ -70,7 +70,14 @@ int main()
     // Read and compile shaders
     ShaderProgram* shaderProgram = new ShaderProgram("vertex.glsl", "fragment.glsl");
     const unsigned int shaderId = (*shaderProgram).getId();
+
+    // Generate initial chunks
     std::vector<Chunk*> chunks = { new Chunk(0, 0, 0) , new Chunk(1, 0, 0), new Chunk(0, 0, 1), new Chunk(1, 0, 1) };
+    for (Chunk* chunk : chunks) {
+        chunk->generate(nullptr); // TODO: Pass actual neighbours
+        chunk->mesh();
+    }
+
 
     // Vertex data and buffers
     unsigned int VBO, VAO, EBO;
@@ -154,13 +161,13 @@ int main()
             glEnableVertexAttribArray(2);
 
             glBindBuffer(GL_ARRAY_BUFFER, VBO);
-            glBufferData(GL_ARRAY_BUFFER, (*chunk).vertices.size() * sizeof(float), (*chunk).vertices.data(), GL_STATIC_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, chunk->vertices.size() * sizeof(float), chunk->vertices.data(), GL_STATIC_DRAW);
 
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, (*chunk).indices.size() * sizeof(unsigned int), (*chunk).indices.data(), GL_STATIC_DRAW);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, chunk->indices.size() * sizeof(unsigned int), chunk->indices.data(), GL_STATIC_DRAW);
 
             glBindVertexArray(VAO);
-            glDrawElements(GL_TRIANGLES, (*chunk).indices.size(), GL_UNSIGNED_INT, 0);
+            glDrawElements(GL_TRIANGLES, chunk->indices.size(), GL_UNSIGNED_INT, 0);
         }
 
         glfwSwapBuffers(window);
