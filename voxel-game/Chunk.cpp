@@ -8,7 +8,7 @@ Chunk::Chunk(int xPos, int yPos, int zPos) : xPos(xPos), yPos(yPos), zPos(zPos)
 	{
 		for (int z = 0; z < CHUNK_SIZE; z++)
 		{
-			height[x][z] = (int)8 + 4 * (float)rand() / RAND_MAX;
+			height[x][z] = 8 + 4 * (float)rand() / RAND_MAX;
 		}
 	}
 
@@ -32,6 +32,14 @@ Chunk::Chunk(int xPos, int yPos, int zPos) : xPos(xPos), yPos(yPos), zPos(zPos)
 	}
 
 	remesh();
+}
+
+long long Chunk::getId()
+{
+	short int result = (short int)xPos;
+	result = (result << 16) + (short int)yPos;
+	result = (result << 16) + (short int)zPos;
+	return result;
 }
 
 Block Chunk::get(int x, int y, int z)

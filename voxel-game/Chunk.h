@@ -9,6 +9,7 @@ class Chunk
 {
 public:
 	Chunk(int xPos, int yPos, int zPos);
+	long long getId();
 	Block get(int x, int y, int z);
 	void remesh();
 	std::vector<float> vertices;

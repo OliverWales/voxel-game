@@ -27,6 +27,10 @@ glm::vec3 cameraPos = glm::vec3(8.0f, 40.0f, 8.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
+int lastChunkX = cameraPos.x / CHUNK_SIZE;
+int lastChunkY = cameraPos.x / CHUNK_SIZE;
+int lastChunkZ = cameraPos.x / CHUNK_SIZE;
+
 // Timing
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
@@ -64,8 +68,9 @@ int main()
     }
 
     // Read and compile shaders
-    ShaderProgram shaderProgram("vertex.glsl", "fragment.glsl");
-    std::vector<Chunk> chunks = { Chunk(0, 0, 0) , Chunk(1, 0, 0), Chunk(0, 0, 1), Chunk(1, 0, 1) };
+    ShaderProgram* shaderProgram = new ShaderProgram("vertex.glsl", "fragment.glsl");
+    const unsigned int shaderId = (*shaderProgram).getId();
+    std::vector<Chunk*> chunks = { new Chunk(0, 0, 0) , new Chunk(1, 0, 0), new Chunk(0, 0, 1), new Chunk(1, 0, 1) };
 
     // Vertex data and buffers
     unsigned int VBO, VAO, EBO;
@@ -73,7 +78,7 @@ int main()
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);
 
-    glUseProgram(shaderProgram.getId());
+    glUseProgram(shaderId);
 
     // Load texture atlas
     unsigned int texture;
@@ -110,9 +115,9 @@ int main()
     view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
     projection = glm::perspective(glm::radians(FOV), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 
-    unsigned int modelLoc = glGetUniformLocation(shaderProgram.getId(), "model");
-    unsigned int viewLoc = glGetUniformLocation(shaderProgram.getId(), "view");
-    unsigned int projLoc = glGetUniformLocation(shaderProgram.getId(), "projection");
+    unsigned int modelLoc = glGetUniformLocation(shaderId, "model");
+    unsigned int viewLoc = glGetUniformLocation(shaderId, "view");
+    unsigned int projLoc = glGetUniformLocation(shaderId, "projection");
 
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
@@ -138,7 +143,7 @@ int main()
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        for (Chunk chunk : chunks) {
+        for (Chunk* chunk : chunks) {
             glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
             glEnableVertexAttribArray(0);
 
@@ -149,13 +154,13 @@ int main()
             glEnableVertexAttribArray(2);
 
             glBindBuffer(GL_ARRAY_BUFFER, VBO);
-            glBufferData(GL_ARRAY_BUFFER, chunk.vertices.size() * sizeof(float), chunk.vertices.data(), GL_STATIC_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, (*chunk).vertices.size() * sizeof(float), (*chunk).vertices.data(), GL_STATIC_DRAW);
 
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, chunk.indices.size() * sizeof(unsigned int), chunk.indices.data(), GL_STATIC_DRAW);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, (*chunk).indices.size() * sizeof(unsigned int), (*chunk).indices.data(), GL_STATIC_DRAW);
 
             glBindVertexArray(VAO);
-            glDrawElements(GL_TRIANGLES, chunk.indices.size(), GL_UNSIGNED_INT, 0);
+            glDrawElements(GL_TRIANGLES, (*chunk).indices.size(), GL_UNSIGNED_INT, 0);
         }
 
         glfwSwapBuffers(window);
@@ -195,6 +200,13 @@ void processKeyboardInput(GLFWwindow* window)
         cameraPos += cameraSpeed * cameraUp;
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
         cameraPos -= cameraSpeed * cameraUp;
+
+    if (lastChunkX != (int)cameraPos.x / CHUNK_SIZE || lastChunkY != (int)cameraPos.y / CHUNK_SIZE || lastChunkZ != (int)cameraPos.z / CHUNK_SIZE) {
+        lastChunkX = cameraPos.x / CHUNK_SIZE;
+        lastChunkY = cameraPos.y / CHUNK_SIZE;
+        lastChunkZ = cameraPos.z / CHUNK_SIZE;
+        std::cout << "(" << lastChunkX << ", " << lastChunkY << ", " << lastChunkZ << ")\n";
+    }
 }
 
 void processMouseInput(GLFWwindow* window, double xPos, double yPos)
@@ -229,3 +241,4 @@ void processMouseInput(GLFWwindow* window, double xPos, double yPos)
     front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
     cameraFront = glm::normalize(front);
 }
+
