@@ -8,6 +8,7 @@
 #include "stb_image.h"
 
 #include <iostream>
+#include <unordered_map>
 #include "ShaderProgram.h"
 #include "Chunk.h"
 
@@ -23,9 +24,15 @@ float lastX = SCR_WIDTH / 2.0;
 float lastY = SCR_HEIGHT / 2.0;
 
 // Camera
-glm::vec3 cameraPos = glm::vec3(4.0f, 4.0f, 18.0f);
+glm::vec3 cameraPos = glm::vec3(0.0f, 40.0f, 0.0f); // start in centre of world at altitude
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+// Chunks
+std::unordered_map<std::string, Chunk*> chunkMap;
+int playerChunkX = cameraPos.x / CHUNK_SIZE;
+int playerChunkY = cameraPos.y / CHUNK_SIZE;
+int playerChunkZ = cameraPos.z / CHUNK_SIZE;
 
 // Timing
 float deltaTime = 0.0f;
@@ -34,6 +41,7 @@ float lastFrame = 0.0f;
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processKeyboardInput(GLFWwindow* window);
 void processMouseInput(GLFWwindow* window, double xPos, double yPos);
+void loadChunks();
 
 int main()
 {
@@ -64,8 +72,11 @@ int main()
     }
 
     // Read and compile shaders
-    ShaderProgram shaderProgram("vertex.glsl", "fragment.glsl");
-    Chunk testChunk = Chunk(0, 0, 0);
+    ShaderProgram* shaderProgram = new ShaderProgram("vertex.glsl", "fragment.glsl");
+    const unsigned int shaderId = (*shaderProgram).getId();
+
+    // Generate initial chunks
+    loadChunks();
 
     // Vertex data and buffers
     unsigned int VBO, VAO, EBO;
@@ -73,25 +84,7 @@ int main()
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);
 
-    glBindVertexArray(VAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, testChunk.vertices.size() * sizeof(float), testChunk.vertices.data(), GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, testChunk.indices.size() * sizeof(unsigned int), testChunk.indices.data(), GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(5 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-
-    glUseProgram(shaderProgram.getId());
-    glBindVertexArray(VAO);
+    glUseProgram(shaderId);
 
     // Load texture atlas
     unsigned int texture;
@@ -126,11 +119,11 @@ int main()
     glm::mat4 projection = glm::mat4(1.0f);
 
     view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-    projection = glm::perspective(glm::radians(FOV), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+    projection = glm::perspective(glm::radians(FOV), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
 
-    unsigned int modelLoc = glGetUniformLocation(shaderProgram.getId(), "model");
-    unsigned int viewLoc = glGetUniformLocation(shaderProgram.getId(), "view");
-    unsigned int projLoc = glGetUniformLocation(shaderProgram.getId(), "projection");
+    unsigned int modelLoc = glGetUniformLocation(shaderId, "model");
+    unsigned int viewLoc = glGetUniformLocation(shaderId, "view");
+    unsigned int projLoc = glGetUniformLocation(shaderId, "projection");
 
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
@@ -155,7 +148,29 @@ int main()
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glDrawElements(GL_TRIANGLES, testChunk.indices.size(), GL_UNSIGNED_INT, 0);
+
+        for (auto const& chunkPair : chunkMap) {
+            auto chunk = chunkPair.second;
+            if (chunk->isMeshed()) {
+                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+                glEnableVertexAttribArray(0);
+
+                glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+                glEnableVertexAttribArray(1);
+
+                glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(5 * sizeof(float)));
+                glEnableVertexAttribArray(2);
+
+                glBindBuffer(GL_ARRAY_BUFFER, VBO);
+                glBufferData(GL_ARRAY_BUFFER, chunk->vertices.size() * sizeof(float), chunk->vertices.data(), GL_STATIC_DRAW);
+
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+                glBufferData(GL_ELEMENT_ARRAY_BUFFER, chunk->indices.size() * sizeof(unsigned int), chunk->indices.data(), GL_STATIC_DRAW);
+
+                glBindVertexArray(VAO);
+                glDrawElements(GL_TRIANGLES, chunk->indices.size(), GL_UNSIGNED_INT, 0);
+            }
+        }
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -179,7 +194,9 @@ void processKeyboardInput(GLFWwindow* window)
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
-    float cameraSpeed = 2.5f * deltaTime;
+    float cameraSpeed = 3.0f * deltaTime;
+    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+        cameraSpeed *= 5;
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         cameraPos += cameraSpeed * cameraFront;
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -192,6 +209,13 @@ void processKeyboardInput(GLFWwindow* window)
         cameraPos += cameraSpeed * cameraUp;
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
         cameraPos -= cameraSpeed * cameraUp;
+
+    if (playerChunkX != (int)cameraPos.x / CHUNK_SIZE || playerChunkY != (int)cameraPos.y / CHUNK_SIZE || playerChunkZ != (int)cameraPos.z / CHUNK_SIZE) {
+        playerChunkX = cameraPos.x / CHUNK_SIZE;
+        playerChunkY = cameraPos.y / CHUNK_SIZE;
+        playerChunkZ = cameraPos.z / CHUNK_SIZE;
+        loadChunks();
+    }
 }
 
 void processMouseInput(GLFWwindow* window, double xPos, double yPos)
@@ -225,4 +249,42 @@ void processMouseInput(GLFWwindow* window, double xPos, double yPos)
     front.y = sin(glm::radians(pitch));
     front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
     cameraFront = glm::normalize(front);
+}
+
+void loadChunks() {
+    // Seed chunks
+    int range = 5;
+    for (int x = -range; x < range + 1; x++) {
+        for (int z = -range; z < range + 1; z++) {
+            std::string id = Chunk::getId(playerChunkX + x, 0, playerChunkZ + z);
+            if (chunkMap.find(id) == chunkMap.end()) {
+                Chunk* chunk = new Chunk(playerChunkX + x, 0, playerChunkZ + z);
+                chunkMap.insert(std::pair<std::string, Chunk*>(chunk->id, chunk));
+            }
+        }
+    }
+
+    // Generate and mesh chunks
+    for (auto const& chunkPair : chunkMap) {
+        auto chunk = chunkPair.second;
+        auto xNeighbour = chunkMap.find(Chunk::getId(chunk->x + 1, chunk->y, chunk->z));
+        auto zNeighbour = chunkMap.find(Chunk::getId(chunk->x, chunk->y, chunk->z + 1));
+        auto xzNeighbour = chunkMap.find(Chunk::getId(chunk->x + 1, chunk->y, chunk->z + 1));
+
+        if (xNeighbour != chunkMap.end() && zNeighbour != chunkMap.end() && xzNeighbour != chunkMap.end()) {
+            chunk->generate(xNeighbour->second, zNeighbour->second, xzNeighbour->second);
+            chunk->mesh();
+        }
+    }
+
+    // Unload chunks out of range
+    for (auto it = chunkMap.cbegin(), next_it = it; it != chunkMap.cend(); it = next_it)
+    {
+        ++next_it;
+        if (abs(it->second->x - playerChunkX) > 2 * range || abs(it->second->z - playerChunkZ) > 2 * range)
+        {
+            delete it->second;
+            chunkMap.erase(it);
+        }
+    }
 }
