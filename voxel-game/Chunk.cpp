@@ -24,9 +24,8 @@ Chunk::~Chunk()
 	id.empty();
 }
 
-void Chunk::generate(Chunk* xNeighbour, Chunk* zNeighbour, Chunk* xzNeighbour)
+void Chunk::generate(Chunk* xNeighbour, Chunk* zNeighbour, Chunk* xzNeighbour, std::vector<Edit>* edits)
 {
-	// TODO: Add storage of modifications to base world and recreate them here
 	if (m_generated) return;
 	m_generated = true;
 
@@ -104,6 +103,12 @@ void Chunk::generate(Chunk* xNeighbour, Chunk* zNeighbour, Chunk* xzNeighbour)
 					m_blocks[xIndex][yIndex][zIndex].type = Block::BlockType::Stone;
 				}
 			}
+		}
+	}
+
+	for (auto edit : *edits) {
+		if (edit.chunkId == id) {
+			m_blocks[edit.x][edit.y][edit.z] = edit.type;
 		}
 	}
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include "Block.h"
+#include "Edit.h"
 
 #include <glm/glm.hpp>
 #include <iostream>
@@ -13,7 +14,7 @@ class Chunk
 public:
 	Chunk(int x, int y, int z); // initialise chunk seed array
 	~Chunk();
-	void generate(Chunk* xNeighbour, Chunk* zNeighbour, Chunk* xzNeighbour); // perform world-gen (requires neighbours' seeds to make noise continuous)
+	void generate(Chunk* xNeighbour, Chunk* zNeighbour, Chunk* xzNeighbour, std::vector<Edit>* edits); // perform world-gen (requires neighbours' seeds to make noise continuous)
 	void mesh(); // generate mesh
 	void remesh(); // regenerate mesh
 
