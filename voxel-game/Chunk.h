@@ -6,6 +6,7 @@
 #include <iostream>
 #include <string>
 #include <Vector>
+#include "RayCastHit.h"
 
 constexpr auto CHUNK_SIZE = 16;
 
@@ -17,11 +18,6 @@ public:
 	void generate(Chunk* xNeighbour, Chunk* zNeighbour, Chunk* xzNeighbour, std::vector<Edit>* edits); // perform world-gen (requires neighbours' seeds to make noise continuous)
 	void mesh(); // generate mesh
 	void remesh(); // regenerate mesh
-
-	struct RayCastHit {
-		int xIndex, yIndex, zIndex;
-		int face;
-	};
 
 	bool isMeshed();
 	float getSeed(int xIndex, int zIndex); // get seed value at (x, z) coordinate
@@ -44,5 +40,6 @@ private:
 	Block m_blocks[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
 	bool m_generated = false;
 	bool m_meshed = false;
+	bool m_empty = true;
 	unsigned int m_index = 0;
 };

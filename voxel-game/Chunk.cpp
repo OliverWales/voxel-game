@@ -83,24 +83,28 @@ void Chunk::generate(Chunk* xNeighbour, Chunk* zNeighbour, Chunk* xzNeighbour, s
 		}
 	}
 
+	bool empty = true;
 	for (int xIndex = 0; xIndex < CHUNK_SIZE; xIndex++)
 	{
 		for (int yIndex = 0; yIndex < CHUNK_SIZE; yIndex++)
 		{
 			for (int zIndex = 0; zIndex < CHUNK_SIZE; zIndex++)
 			{
-				int h = smooth_noise[xIndex][zIndex] * 15;
+				int h = CHUNK_SIZE * y + smooth_noise[xIndex][zIndex] * 15;
 				if (yIndex + h > 15) {
 					m_blocks[xIndex][yIndex][zIndex].type = Block::BlockType::Air;
 				}
 				else if (yIndex + h == 15) {
 					m_blocks[xIndex][yIndex][zIndex].type = Block::BlockType::Grass;
+					m_empty = false;
 				}
 				else if (yIndex + h > 12) {
 					m_blocks[xIndex][yIndex][zIndex].type = Block::BlockType::Dirt;
+					m_empty = false;
 				}
 				else {
 					m_blocks[xIndex][yIndex][zIndex].type = Block::BlockType::Stone;
+					m_empty = false;
 				}
 			}
 		}
@@ -115,6 +119,13 @@ void Chunk::generate(Chunk* xNeighbour, Chunk* zNeighbour, Chunk* xzNeighbour, s
 
 void Chunk::mesh()
 {
+	if (m_empty) {
+		m_meshed = true;
+		vertices.clear();
+		indices.clear();
+		return;
+	}
+
 	if (m_meshed) return;
 	remesh();
 }
@@ -157,7 +168,7 @@ Block* Chunk::getBlock(int xIndex, int yIndex, int zIndex)
 	return &m_blocks[xIndex][yIndex][zIndex];
 }
 
-Chunk::RayCastHit Chunk::getBlock(glm::vec3 origin, glm::vec3 direction, float maxDist)
+RayCastHit Chunk::getBlock(glm::vec3 origin, glm::vec3 direction, float maxDist)
 {
 	origin -= glm::vec3(x * CHUNK_SIZE, y * CHUNK_SIZE, z * CHUNK_SIZE);
 
@@ -184,7 +195,9 @@ Chunk::RayCastHit Chunk::getBlock(glm::vec3 origin, glm::vec3 direction, float m
 	float deltaY = stepY / dy;
 	float deltaZ = stepZ / dz;
 
-	int face = -1;
+	int normalX = 0;
+	int normalY = 0;
+	int normalZ = 0;
 
 	while (stepX > 0 ? x < CHUNK_SIZE : x >= 0
 		&& stepY > 0 ? y < CHUNK_SIZE : y >= 0
@@ -192,39 +205,47 @@ Chunk::RayCastHit Chunk::getBlock(glm::vec3 origin, glm::vec3 direction, float m
 
 		if (!(x < 0 || y < 0 || z < 0 || x >= CHUNK_SIZE || y >= CHUNK_SIZE || z >= CHUNK_SIZE))
 			if (m_blocks[x][y][z].type != Block::BlockType::Air)
-				return { x, y, z, face };
+				return { true, x, y, z, normalX, normalY, normalZ };
 
 		if (maxX < maxY) {
 			if (maxX < maxZ) {
-				if (maxX > maxDist) break;
+				normalX = -stepX;
+				normalY = 0;
+				normalZ = 0;
+				if (maxX > maxDist) return { false, 0, 0, 0, 0, 0, 0 };
 				x += stepX;
 				maxX += deltaX;
-				face = stepX > 0 ? 0 : 3; // TODO: may need inverting
 			}
 			else {
-				if (maxZ > maxDist) break;
+				normalX = 0;
+				normalY = 0;
+				normalZ = -stepZ;
+				if (maxZ > maxDist) return { false, 0, 0, 0, 0, 0, 0 };
 				z += stepZ;
 				maxZ += deltaZ;
-				face = stepZ > 0 ? 2 : 5; // TODO: may need inverting
 			}
 		}
 		else {
 			if (maxY < maxZ) {
-				if (maxY > maxDist) break;
+				normalX = 0;
+				normalY = -stepY;
+				normalZ = 0;
+				if (maxY > maxDist) return { false, 0, 0, 0, 0, 0, 0 };
 				y += stepY;
 				maxY += deltaY;
-				face = stepY > 0 ? 1 : 4; // TODO: may need inverting
 			}
 			else {
-				if (maxZ > maxDist) break;
+				normalX = 0;
+				normalY = 0;
+				normalZ = -stepZ;
+				if (maxZ > maxDist) return { false, 0, 0, 0, 0, 0, 0 };
 				z += stepZ;
 				maxZ += deltaZ;
-				face = stepZ > 0 ? 2 : 5; // TODO: may need inverting
 			}
 		}
 	}
 
-	return { 0, 0, 0, -1 };
+	return { false, 0, 0, 0, normalX, normalY, normalZ };
 }
 
 void Chunk::setBlock(int x, int y, int z, Block::BlockType type)
