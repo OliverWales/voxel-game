@@ -28,9 +28,11 @@ glm::vec3 cameraPos = glm::vec3(0.0f, 40.0f, 0.0f); // start in centre of world 
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
-int lastChunkX = cameraPos.x / CHUNK_SIZE;
-int lastChunkY = cameraPos.x / CHUNK_SIZE;
-int lastChunkZ = cameraPos.x / CHUNK_SIZE;
+// Chunks
+std::unordered_map<std::string, Chunk*> chunkMap;
+int playerChunkX = cameraPos.x / CHUNK_SIZE;
+int playerChunkY = cameraPos.y / CHUNK_SIZE;
+int playerChunkZ = cameraPos.z / CHUNK_SIZE;
 
 // Timing
 float deltaTime = 0.0f;
@@ -39,6 +41,7 @@ float lastFrame = 0.0f;
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processKeyboardInput(GLFWwindow* window);
 void processMouseInput(GLFWwindow* window, double xPos, double yPos);
+void loadChunks();
 
 int main()
 {
@@ -73,26 +76,7 @@ int main()
     const unsigned int shaderId = (*shaderProgram).getId();
 
     // Generate initial chunks
-    std::unordered_map<std::string, Chunk*> chunkMap;
-    int range = 5;
-    for (int x = -range; x < range + 1; x++) {
-        for (int z = -range; z < range + 1; z++) {
-            Chunk* chunk = new Chunk(x, 0, z);
-            chunkMap.insert(std::pair<std::string, Chunk*>(chunk->id, chunk));
-        }
-    }
-
-    for (auto const& chunkPair : chunkMap) {
-        auto chunk = chunkPair.second;
-        auto xNeighbour = chunkMap.find(Chunk::getId(chunk->x + 1, chunk->y, chunk->z));
-        auto zNeighbour = chunkMap.find(Chunk::getId(chunk->x, chunk->y, chunk->z + 1));
-        auto xzNeighbour = chunkMap.find(Chunk::getId(chunk->x + 1, chunk->y, chunk->z + 1));
-
-        if (xNeighbour != chunkMap.end() && zNeighbour != chunkMap.end() && xzNeighbour != chunkMap.end()) {
-            chunk->generate(xNeighbour->second, zNeighbour->second, xzNeighbour->second);
-            chunk->mesh();
-        }
-    }
+    loadChunks();
 
     // Vertex data and buffers
     unsigned int VBO, VAO, EBO;
@@ -226,11 +210,12 @@ void processKeyboardInput(GLFWwindow* window)
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
         cameraPos -= cameraSpeed * cameraUp;
 
-    if (lastChunkX != (int)cameraPos.x / CHUNK_SIZE || lastChunkY != (int)cameraPos.y / CHUNK_SIZE || lastChunkZ != (int)cameraPos.z / CHUNK_SIZE) {
-        lastChunkX = cameraPos.x / CHUNK_SIZE;
-        lastChunkY = cameraPos.y / CHUNK_SIZE;
-        lastChunkZ = cameraPos.z / CHUNK_SIZE;
-        //std::cout << "(" << lastChunkX << ", " << lastChunkY << ", " << lastChunkZ << ")\n";
+    if (playerChunkX != (int)cameraPos.x / CHUNK_SIZE || playerChunkY != (int)cameraPos.y / CHUNK_SIZE || playerChunkZ != (int)cameraPos.z / CHUNK_SIZE) {
+        playerChunkX = cameraPos.x / CHUNK_SIZE;
+        playerChunkY = cameraPos.y / CHUNK_SIZE;
+        playerChunkZ = cameraPos.z / CHUNK_SIZE;
+        std::cout << "Player moved to chunk (" << playerChunkX << ", " << playerChunkY << ", " << playerChunkZ << ")\n";
+        loadChunks();
     }
 }
 
@@ -267,3 +252,34 @@ void processMouseInput(GLFWwindow* window, double xPos, double yPos)
     cameraFront = glm::normalize(front);
 }
 
+void loadChunks() {
+    std::cout << "Reloading chunks\n";
+    // Seed chunks
+    int range = 1;
+    for (int x = -range; x < range + 1; x++) {
+        for (int z = -range; z < range + 1; z++) {
+            std::string id = Chunk::getId(playerChunkX + x, 0, playerChunkZ + z);
+            if (chunkMap.find(id) == chunkMap.end()) {
+                Chunk* chunk = new Chunk(playerChunkX + x, 0, playerChunkZ + z);
+                chunkMap.insert(std::pair<std::string, Chunk*>(chunk->id, chunk));
+                std::cout << "Loaded chunk (" << chunk->x << ", " << chunk->y << ", " << chunk->z << ")\n";
+            }
+        }
+    }
+
+    // Generate and mesh chunks
+    for (auto const& chunkPair : chunkMap) {
+        auto chunk = chunkPair.second;
+        auto xNeighbour = chunkMap.find(Chunk::getId(chunk->x + 1, chunk->y, chunk->z));
+        auto zNeighbour = chunkMap.find(Chunk::getId(chunk->x, chunk->y, chunk->z + 1));
+        auto xzNeighbour = chunkMap.find(Chunk::getId(chunk->x + 1, chunk->y, chunk->z + 1));
+
+        if (xNeighbour != chunkMap.end() && zNeighbour != chunkMap.end() && xzNeighbour != chunkMap.end()) {
+            chunk->generate(xNeighbour->second, zNeighbour->second, xzNeighbour->second);
+            chunk->mesh();
+            std::cout << "Meshed chunk (" << chunk->x << ", " << chunk->y << ", " << chunk->z << ")\n";
+        }
+    }
+
+    // TODO: Unload chunks out of range
+}
