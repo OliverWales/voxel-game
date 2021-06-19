@@ -17,6 +17,13 @@ Chunk::Chunk(int x, int y, int z)
 	}
 }
 
+Chunk::~Chunk()
+{
+	indices.clear();
+	vertices.clear();
+	id.empty();
+}
+
 void Chunk::generate(Chunk* xNeighbour, Chunk* zNeighbour, Chunk* xzNeighbour)
 {
 	// TODO: Add storage of modifications to base world and recreate them here

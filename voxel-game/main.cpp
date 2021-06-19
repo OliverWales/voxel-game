@@ -214,7 +214,6 @@ void processKeyboardInput(GLFWwindow* window)
         playerChunkX = cameraPos.x / CHUNK_SIZE;
         playerChunkY = cameraPos.y / CHUNK_SIZE;
         playerChunkZ = cameraPos.z / CHUNK_SIZE;
-        std::cout << "Player moved to chunk (" << playerChunkX << ", " << playerChunkY << ", " << playerChunkZ << ")\n";
         loadChunks();
     }
 }
@@ -253,16 +252,14 @@ void processMouseInput(GLFWwindow* window, double xPos, double yPos)
 }
 
 void loadChunks() {
-    std::cout << "Reloading chunks\n";
     // Seed chunks
-    int range = 1;
+    int range = 5;
     for (int x = -range; x < range + 1; x++) {
         for (int z = -range; z < range + 1; z++) {
             std::string id = Chunk::getId(playerChunkX + x, 0, playerChunkZ + z);
             if (chunkMap.find(id) == chunkMap.end()) {
                 Chunk* chunk = new Chunk(playerChunkX + x, 0, playerChunkZ + z);
                 chunkMap.insert(std::pair<std::string, Chunk*>(chunk->id, chunk));
-                std::cout << "Loaded chunk (" << chunk->x << ", " << chunk->y << ", " << chunk->z << ")\n";
             }
         }
     }
@@ -277,9 +274,17 @@ void loadChunks() {
         if (xNeighbour != chunkMap.end() && zNeighbour != chunkMap.end() && xzNeighbour != chunkMap.end()) {
             chunk->generate(xNeighbour->second, zNeighbour->second, xzNeighbour->second);
             chunk->mesh();
-            std::cout << "Meshed chunk (" << chunk->x << ", " << chunk->y << ", " << chunk->z << ")\n";
         }
     }
 
-    // TODO: Unload chunks out of range
+    // Unload chunks out of range
+    for (auto it = chunkMap.cbegin(), next_it = it; it != chunkMap.cend(); it = next_it)
+    {
+        ++next_it;
+        if (abs(it->second->x - playerChunkX) > 2 * range || abs(it->second->z - playerChunkZ) > 2 * range)
+        {
+            delete it->second;
+            chunkMap.erase(it);
+        }
+    }
 }
