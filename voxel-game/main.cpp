@@ -8,6 +8,7 @@
 #include "stb_image.h"
 
 #include <iostream>
+#include <unordered_map>
 #include "ShaderProgram.h"
 #include "Chunk.h"
 
@@ -72,16 +73,26 @@ int main()
     const unsigned int shaderId = (*shaderProgram).getId();
 
     // Generate initial chunks
-    std::vector<Chunk*> chunks = {
-        new Chunk(-1, 0, -1), new Chunk(0, 0, -1), new Chunk(1, 0, -1),
-        new Chunk(-1, 0,  0), new Chunk(0, 0,  0), new Chunk(1, 0,  0),
-        new Chunk(-1, 0,  1), new Chunk(0, 0,  1), new Chunk(1, 0,  1),
-    };
-    for (Chunk* chunk : chunks) {
-        chunk->generate(nullptr); // TODO: Pass actual neighbours
-        chunk->mesh();
+    std::unordered_map<std::string, Chunk*> chunkMap;
+    int range = 5;
+    for (int x = -range; x < range + 1; x++) {
+        for (int z = -range; z < range + 1; z++) {
+            Chunk* chunk = new Chunk(x, 0, z);
+            chunkMap.insert(std::pair<std::string, Chunk*>(chunk->id, chunk));
+        }
     }
 
+    for (auto const& chunkPair : chunkMap) {
+        auto chunk = chunkPair.second;
+        auto xNeighbour = chunkMap.find(Chunk::getId(chunk->x + 1, chunk->y, chunk->z));
+        auto zNeighbour = chunkMap.find(Chunk::getId(chunk->x, chunk->y, chunk->z + 1));
+        auto xzNeighbour = chunkMap.find(Chunk::getId(chunk->x + 1, chunk->y, chunk->z + 1));
+
+        if (xNeighbour != chunkMap.end() && zNeighbour != chunkMap.end() && xzNeighbour != chunkMap.end()) {
+            chunk->generate(xNeighbour->second, zNeighbour->second, xzNeighbour->second);
+            chunk->mesh();
+        }
+    }
 
     // Vertex data and buffers
     unsigned int VBO, VAO, EBO;
@@ -124,7 +135,7 @@ int main()
     glm::mat4 projection = glm::mat4(1.0f);
 
     view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-    projection = glm::perspective(glm::radians(FOV), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+    projection = glm::perspective(glm::radians(FOV), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
 
     unsigned int modelLoc = glGetUniformLocation(shaderId, "model");
     unsigned int viewLoc = glGetUniformLocation(shaderId, "view");
@@ -154,24 +165,27 @@ int main()
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        for (Chunk* chunk : chunks) {
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-            glEnableVertexAttribArray(0);
+        for (auto const& chunkPair : chunkMap) {
+            auto chunk = chunkPair.second;
+            if (chunk->isMeshed()) {
+                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+                glEnableVertexAttribArray(0);
 
-            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-            glEnableVertexAttribArray(1);
+                glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+                glEnableVertexAttribArray(1);
 
-            glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(5 * sizeof(float)));
-            glEnableVertexAttribArray(2);
+                glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(5 * sizeof(float)));
+                glEnableVertexAttribArray(2);
 
-            glBindBuffer(GL_ARRAY_BUFFER, VBO);
-            glBufferData(GL_ARRAY_BUFFER, chunk->vertices.size() * sizeof(float), chunk->vertices.data(), GL_STATIC_DRAW);
+                glBindBuffer(GL_ARRAY_BUFFER, VBO);
+                glBufferData(GL_ARRAY_BUFFER, chunk->vertices.size() * sizeof(float), chunk->vertices.data(), GL_STATIC_DRAW);
 
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, chunk->indices.size() * sizeof(unsigned int), chunk->indices.data(), GL_STATIC_DRAW);
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+                glBufferData(GL_ELEMENT_ARRAY_BUFFER, chunk->indices.size() * sizeof(unsigned int), chunk->indices.data(), GL_STATIC_DRAW);
 
-            glBindVertexArray(VAO);
-            glDrawElements(GL_TRIANGLES, chunk->indices.size(), GL_UNSIGNED_INT, 0);
+                glBindVertexArray(VAO);
+                glDrawElements(GL_TRIANGLES, chunk->indices.size(), GL_UNSIGNED_INT, 0);
+            }
         }
 
         glfwSwapBuffers(window);
@@ -216,7 +230,7 @@ void processKeyboardInput(GLFWwindow* window)
         lastChunkX = cameraPos.x / CHUNK_SIZE;
         lastChunkY = cameraPos.y / CHUNK_SIZE;
         lastChunkZ = cameraPos.z / CHUNK_SIZE;
-        std::cout << "(" << lastChunkX << ", " << lastChunkY << ", " << lastChunkZ << ")\n";
+        //std::cout << "(" << lastChunkX << ", " << lastChunkY << ", " << lastChunkZ << ")\n";
     }
 }
 
