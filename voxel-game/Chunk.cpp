@@ -27,8 +27,7 @@ Chunk::~Chunk()
 void Chunk::generate(Chunk* xNeighbour, Chunk* zNeighbour, Chunk* xzNeighbour)
 {
 	// TODO: Add storage of modifications to base world and recreate them here
-	if (m_generated)
-		return;
+	if (m_generated) return;
 	m_generated = true;
 
 	float smooth_noise[CHUNK_SIZE][CHUNK_SIZE];
@@ -111,9 +110,13 @@ void Chunk::generate(Chunk* xNeighbour, Chunk* zNeighbour, Chunk* xzNeighbour)
 
 void Chunk::mesh()
 {
+	if (m_meshed) return;
+	remesh();
+}
+
+void Chunk::remesh()
+{
 	// TODO: Pass blocks of neighbouring chunks and avoid generating uneccesary faces at chunk boundaries
-	if (m_meshed)
-		return;
 	m_meshed = true;
 
 	vertices.clear();
@@ -147,6 +150,81 @@ float Chunk::getSeed(int xIndex, int zIndex)
 Block* Chunk::getBlock(int xIndex, int yIndex, int zIndex)
 {
 	return &m_blocks[xIndex][yIndex][zIndex];
+}
+
+Chunk::RayCastHit Chunk::getBlock(glm::vec3 origin, glm::vec3 direction, float maxDist)
+{
+	origin -= glm::vec3(x * CHUNK_SIZE, y * CHUNK_SIZE, z * CHUNK_SIZE);
+	std::cout << "(" << origin.x << ", " << origin.y << ", " << origin.z << ")\n";
+	int x = floor(origin.x);
+	int y = floor(origin.y);
+	int z = floor(origin.z);
+
+	float dx = direction.x;
+	float dy = direction.y;
+	float dz = direction.z;
+
+	if (dx == 0 && dy == 0 && dz == 0)
+		return { 0, 0, 0, -1 };
+
+	int stepX = dx >= 0 ? 1 : -1;
+	int stepY = dy >= 0 ? 1 : -1;
+	int stepZ = dz >= 0 ? 1 : -1;
+
+	float maxX = bound(origin.x, dx);
+	float maxY = bound(origin.y, dy);
+	float maxZ = bound(origin.z, dz);
+
+	float deltaX = stepX / dx;
+	float deltaY = stepY / dy;
+	float deltaZ = stepZ / dz;
+
+	int face = -1;
+
+	while (stepX > 0 ? x < CHUNK_SIZE : x >= 0
+		&& stepY > 0 ? y < CHUNK_SIZE : y >= 0
+		&& stepZ > 0 ? z < CHUNK_SIZE : z >= 0) {
+
+		if (!(x < 0 || y < 0 || z < 0 || x >= CHUNK_SIZE || y >= CHUNK_SIZE || z >= CHUNK_SIZE))
+			if (m_blocks[x][y][z].type != Block::BlockType::Air)
+				return { x, y, z, face };
+
+		if (maxX < maxY) {
+			if (maxX < maxZ) {
+				if (maxX > maxDist) break;
+				x += stepX;
+				maxX += deltaX;
+				face = stepX > 0 ? 0 : 3; // TODO: may need inverting
+			}
+			else {
+				if (maxZ > maxDist) break;
+				z += stepZ;
+				maxZ += deltaZ;
+				face = stepZ > 0 ? 2 : 5; // TODO: may need inverting
+			}
+		}
+		else {
+			if (maxY < maxZ) {
+				if (maxY > maxDist) break;
+				y += stepY;
+				maxY += deltaY;
+				face = stepY > 0 ? 1 : 4; // TODO: may need inverting
+			}
+			else {
+				if (maxZ > maxDist) break;
+				z += stepZ;
+				maxZ += deltaZ;
+				face = stepZ > 0 ? 2 : 5; // TODO: may need inverting
+			}
+		}
+	}
+
+	return { 0, 0, 0, -1 };
+}
+
+void Chunk::setBlock(int x, int y, int z, Block::BlockType type)
+{
+	m_blocks[x][y][z].type = type;
 }
 
 std::string Chunk::getId(int x, int y, int z)
@@ -294,5 +372,16 @@ void Chunk::addBlockMesh(int xIndex, int yIndex, int zIndex)
 
 		indices.insert(std::end(indices), std::begin(newIndices), std::end(newIndices));
 		m_index += 4;
+	}
+}
+
+int Chunk::bound(float s, float ds)
+{
+	if (ds < 0) {
+		return bound(-s, -ds);
+	}
+	else {
+		s = s - int(s);
+		return (1 - s) / ds;
 	}
 }

@@ -30,17 +30,18 @@ glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
 // Chunks
 std::unordered_map<std::string, Chunk*> chunkMap;
-int playerChunkX = cameraPos.x / CHUNK_SIZE;
-int playerChunkY = cameraPos.y / CHUNK_SIZE;
-int playerChunkZ = cameraPos.z / CHUNK_SIZE;
+int playerChunkX = floor(cameraPos.x / CHUNK_SIZE);
+int playerChunkY = floor(cameraPos.y / CHUNK_SIZE);
+int playerChunkZ = floor(cameraPos.z / CHUNK_SIZE);
 
 // Timing
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void processMouseMove(GLFWwindow* window, double xPos, double yPos);
+void processMouseButton(GLFWwindow* window, int button, int action, int mods);
 void processKeyboardInput(GLFWwindow* window);
-void processMouseInput(GLFWwindow* window, double xPos, double yPos);
 void loadChunks();
 
 int main()
@@ -61,7 +62,8 @@ int main()
     }
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    glfwSetCursorPosCallback(window, processMouseInput);
+    glfwSetCursorPosCallback(window, processMouseMove);
+    glfwSetMouseButtonCallback(window, processMouseButton);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     // Load OpenGL function pointers
@@ -119,7 +121,7 @@ int main()
     glm::mat4 projection = glm::mat4(1.0f);
 
     view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-    projection = glm::perspective(glm::radians(FOV), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
+    projection = glm::perspective(glm::radians(FOV),(float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
 
     unsigned int modelLoc = glGetUniformLocation(shaderId, "model");
     unsigned int viewLoc = glGetUniformLocation(shaderId, "view");
@@ -162,10 +164,16 @@ int main()
                 glEnableVertexAttribArray(2);
 
                 glBindBuffer(GL_ARRAY_BUFFER, VBO);
-                glBufferData(GL_ARRAY_BUFFER, chunk->vertices.size() * sizeof(float), chunk->vertices.data(), GL_STATIC_DRAW);
+                glBufferData(GL_ARRAY_BUFFER,
+                    chunk->vertices.size() * sizeof(float),
+                    chunk->vertices.data(),
+                    GL_STATIC_DRAW);
 
                 glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-                glBufferData(GL_ELEMENT_ARRAY_BUFFER, chunk->indices.size() * sizeof(unsigned int), chunk->indices.data(), GL_STATIC_DRAW);
+                glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                    chunk->indices.size() * sizeof(unsigned int),
+                    chunk->indices.data(),
+                    GL_STATIC_DRAW);
 
                 glBindVertexArray(VAO);
                 glDrawElements(GL_TRIANGLES, chunk->indices.size(), GL_UNSIGNED_INT, 0);
@@ -191,9 +199,11 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 
 void processKeyboardInput(GLFWwindow* window)
 {
+    // Exit
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
+    // Move camera
     float cameraSpeed = 3.0f * deltaTime;
     if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
         cameraSpeed *= 5;
@@ -209,16 +219,23 @@ void processKeyboardInput(GLFWwindow* window)
         cameraPos += cameraSpeed * cameraUp;
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
         cameraPos -= cameraSpeed * cameraUp;
+    if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) {
+        std::cout << "Cam pos  (" << cameraPos.x << ", " << cameraPos.y << ", " << cameraPos.z << ")\n";
+        std::cout << "In chunk (" << playerChunkX << ", " << playerChunkY << ", " << playerChunkZ << ")\n";
+    }
 
-    if (playerChunkX != (int)cameraPos.x / CHUNK_SIZE || playerChunkY != (int)cameraPos.y / CHUNK_SIZE || playerChunkZ != (int)cameraPos.z / CHUNK_SIZE) {
-        playerChunkX = cameraPos.x / CHUNK_SIZE;
-        playerChunkY = cameraPos.y / CHUNK_SIZE;
-        playerChunkZ = cameraPos.z / CHUNK_SIZE;
+    // Update chunks on player move
+    if (playerChunkX != floor(cameraPos.x / CHUNK_SIZE)
+        || playerChunkY != floor(cameraPos.y / CHUNK_SIZE)
+        || playerChunkZ != floor(cameraPos.z / CHUNK_SIZE)) {
+        playerChunkX = floor(cameraPos.x / CHUNK_SIZE);
+        playerChunkY = floor(cameraPos.y / CHUNK_SIZE);
+        playerChunkZ = floor(cameraPos.z / CHUNK_SIZE);
         loadChunks();
     }
 }
 
-void processMouseInput(GLFWwindow* window, double xPos, double yPos)
+void processMouseMove(GLFWwindow* window, double xPos, double yPos)
 {
     if (firstMouse)
     {
@@ -249,6 +266,24 @@ void processMouseInput(GLFWwindow* window, double xPos, double yPos)
     front.y = sin(glm::radians(pitch));
     front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
     cameraFront = glm::normalize(front);
+}
+
+void processMouseButton(GLFWwindow* window, int button, int action, int mods)
+{
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+        auto it = chunkMap.find(Chunk::getId(playerChunkX, playerChunkY, playerChunkZ));
+        if (it != chunkMap.end()) {
+            auto currentChunk = it->second;
+            auto hit = currentChunk->getBlock(cameraPos, cameraFront, 10);
+            if (hit.face != -1) {
+                std::cout << "Hit (" << hit.xIndex << ", " << hit.yIndex << ", " << hit.zIndex << ")\n";
+                std::cout << "In chunk (" << playerChunkX << ", " << playerChunkY << ", " << playerChunkZ << ")\n";
+                std::cout << "On face " << hit.face << "\n";
+                currentChunk->setBlock(hit.xIndex, hit.yIndex, hit.zIndex, Block::BlockType::Air);
+                currentChunk->remesh();
+            }
+        }
+    }
 }
 
 void loadChunks() {
