@@ -30,9 +30,8 @@ glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
 // Chunks
 std::unordered_map<std::string, Chunk*> chunkMap;
-int playerChunkX = floor(cameraPos.x / CHUNK_SIZE);
-int playerChunkY = floor(cameraPos.y / CHUNK_SIZE);
-int playerChunkZ = floor(cameraPos.z / CHUNK_SIZE);
+Chunk* playerChunk = new Chunk(0, 0, 0);
+Chunk::RayCastHit lastHit;
 
 // Timing
 float deltaTime = 0.0f;
@@ -219,20 +218,19 @@ void processKeyboardInput(GLFWwindow* window)
         cameraPos += cameraSpeed * cameraUp;
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
         cameraPos -= cameraSpeed * cameraUp;
-    if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) {
-        std::cout << "Cam pos  (" << cameraPos.x << ", " << cameraPos.y << ", " << cameraPos.z << ")\n";
-        std::cout << "In chunk (" << playerChunkX << ", " << playerChunkY << ", " << playerChunkZ << ")\n";
-    }
 
     // Update chunks on player move
-    if (playerChunkX != floor(cameraPos.x / CHUNK_SIZE)
-        || playerChunkY != floor(cameraPos.y / CHUNK_SIZE)
-        || playerChunkZ != floor(cameraPos.z / CHUNK_SIZE)) {
-        playerChunkX = floor(cameraPos.x / CHUNK_SIZE);
-        playerChunkY = floor(cameraPos.y / CHUNK_SIZE);
-        playerChunkZ = floor(cameraPos.z / CHUNK_SIZE);
+    int playerChunkX = floor(cameraPos.x / CHUNK_SIZE);
+    int playerChunkY = floor(cameraPos.y / CHUNK_SIZE);
+    int playerChunkZ = floor(cameraPos.z / CHUNK_SIZE);
+    auto it = chunkMap.find(Chunk::getId(playerChunkX, playerChunkY, playerChunkZ));
+    if (it != chunkMap.end() && playerChunk != it->second) {
+        playerChunk = it->second;
         loadChunks();
     }
+
+    // Cast ray
+    lastHit = playerChunk->getBlock(cameraPos, cameraFront, 10);
 }
 
 void processMouseMove(GLFWwindow* window, double xPos, double yPos)
@@ -271,17 +269,28 @@ void processMouseMove(GLFWwindow* window, double xPos, double yPos)
 void processMouseButton(GLFWwindow* window, int button, int action, int mods)
 {
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-        auto it = chunkMap.find(Chunk::getId(playerChunkX, playerChunkY, playerChunkZ));
-        if (it != chunkMap.end()) {
-            auto currentChunk = it->second;
-            auto hit = currentChunk->getBlock(cameraPos, cameraFront, 10);
-            if (hit.face != -1) {
-                std::cout << "Hit (" << hit.xIndex << ", " << hit.yIndex << ", " << hit.zIndex << ")\n";
-                std::cout << "In chunk (" << playerChunkX << ", " << playerChunkY << ", " << playerChunkZ << ")\n";
-                std::cout << "On face " << hit.face << "\n";
-                currentChunk->setBlock(hit.xIndex, hit.yIndex, hit.zIndex, Block::BlockType::Air);
-                currentChunk->remesh();
-            }
+        if (lastHit.face != -1) {
+            playerChunk->setBlock(lastHit.xIndex, lastHit.yIndex, lastHit.zIndex, Block::BlockType::Air);
+            playerChunk->remesh();
+        }
+    }
+
+    if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
+        if (lastHit.face != -1) {
+            std::cout << "Hit (" << lastHit.xIndex << ", " << lastHit.yIndex << ", " << lastHit.zIndex << ")\n";
+            std::cout << "In chunk (" << playerChunk->x << ", " << playerChunk->y << ", " << playerChunk->z << ")\n";
+            std::cout << "On face " << lastHit.face << "\n";
+            int x = lastHit.xIndex;
+            int y = lastHit.yIndex;
+            int z = lastHit.zIndex;
+            if (lastHit.face == 0) x--;
+            if (lastHit.face == 1) y--;
+            if (lastHit.face == 2) z--;
+            if (lastHit.face == 3) x++;
+            if (lastHit.face == 4) y++;
+            if (lastHit.face == 5) z++;
+            playerChunk->setBlock(x, y, z, Block::BlockType::Stone);
+            playerChunk->remesh();
         }
     }
 }
@@ -291,9 +300,9 @@ void loadChunks() {
     int range = 5;
     for (int x = -range; x < range + 1; x++) {
         for (int z = -range; z < range + 1; z++) {
-            std::string id = Chunk::getId(playerChunkX + x, 0, playerChunkZ + z);
+            std::string id = Chunk::getId(playerChunk->x + x, 0, playerChunk->z + z);
             if (chunkMap.find(id) == chunkMap.end()) {
-                Chunk* chunk = new Chunk(playerChunkX + x, 0, playerChunkZ + z);
+                Chunk* chunk = new Chunk(playerChunk->x + x, 0, playerChunk->z + z);
                 chunkMap.insert(std::pair<std::string, Chunk*>(chunk->id, chunk));
             }
         }
@@ -316,10 +325,14 @@ void loadChunks() {
     for (auto it = chunkMap.cbegin(), next_it = it; it != chunkMap.cend(); it = next_it)
     {
         ++next_it;
-        if (abs(it->second->x - playerChunkX) > 2 * range || abs(it->second->z - playerChunkZ) > 2 * range)
+        if (abs(it->second->x - playerChunk->x) > 2 * range || abs(it->second->z - playerChunk->z) > 2 * range)
         {
             delete it->second;
             chunkMap.erase(it);
         }
     }
+}
+
+Chunk::RayCastHit doRayCast() {
+    return playerChunk->getBlock(cameraPos, cameraFront, 10);
 }

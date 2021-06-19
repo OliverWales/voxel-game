@@ -155,7 +155,7 @@ Block* Chunk::getBlock(int xIndex, int yIndex, int zIndex)
 Chunk::RayCastHit Chunk::getBlock(glm::vec3 origin, glm::vec3 direction, float maxDist)
 {
 	origin -= glm::vec3(x * CHUNK_SIZE, y * CHUNK_SIZE, z * CHUNK_SIZE);
-	std::cout << "(" << origin.x << ", " << origin.y << ", " << origin.z << ")\n";
+
 	int x = floor(origin.x);
 	int y = floor(origin.y);
 	int z = floor(origin.z);
