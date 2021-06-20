@@ -295,15 +295,45 @@ void processMouseButton(GLFWwindow* window, int button, int action, int mods)
             edits.push_back({ lastRayCastChunk->id, x, y, z, Block::BlockType::Air });
             lastRayCastChunk->remesh();
         }
-
-        std::cout << "Cam pos: (" << cameraPos.x << ", " << cameraPos.y << ", " << cameraPos.z << ")\n";
-        std::cout << "Cam dir: (" << cameraFront.x << ", " << cameraFront.y << ", " << cameraFront.z << ")\n";
-        std::cout << "Cam chunk: (" << playerChunk->x << ", " << playerChunk->y << ", " << playerChunk->z << ")\n";
-        std::cout << "Ray chunk: (" << lastRayCastChunk->x << ", " << lastRayCastChunk->y << ", " << lastRayCastChunk->z << ")\n";
     }
 
     if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
-        // TODO: needs rewriting in case new block is not in raycast chunk
+        if (lastRayCast.hit) {
+            int x = lastRayCast.xIndex + lastRayCast.xNormal;
+            int y = lastRayCast.yIndex + lastRayCast.yNormal;
+            int z = lastRayCast.zIndex + lastRayCast.zNormal;
+
+            if (x < 0 || y < 0 || z < 0 || x >= CHUNK_SIZE || y >= CHUNK_SIZE || z >= CHUNK_SIZE) {
+                x = (x + CHUNK_SIZE) % CHUNK_SIZE;
+                y = (y + CHUNK_SIZE) % CHUNK_SIZE;
+                z = (z + CHUNK_SIZE) % CHUNK_SIZE;
+
+                std::string id = Chunk::getId(
+                    lastRayCastChunk->x + lastRayCast.xNormal,
+                    lastRayCastChunk->y + lastRayCast.yNormal,
+                    lastRayCastChunk->z + lastRayCast.zNormal);
+
+                auto it = chunkMap.find(id);
+                if (it != chunkMap.end()) {
+                    auto chunk = it->second;
+                    if (chunk->getBlock(x, y, z)->type == Block::BlockType::Air) {
+                        chunk->setBlock(x, y, z, Block::BlockType::Stone);
+                        edits.push_back({ chunk->id, x, y, z, Block::BlockType::Stone });
+                        chunk->remesh();
+                    }
+                }
+                else {
+                    std::cout << "Failed to find chunk " << id << "\n";
+                }
+            }
+            else {
+                if (lastRayCastChunk->getBlock(x, y, z)->type == Block::BlockType::Air) {
+                    lastRayCastChunk->setBlock(x, y, z, Block::BlockType::Stone);
+                    edits.push_back({ lastRayCastChunk->id, x, y, z, Block::BlockType::Stone });
+                    lastRayCastChunk->remesh();
+                }
+            }
+        }
     }
 }
 
