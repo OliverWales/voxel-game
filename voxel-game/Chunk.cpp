@@ -24,11 +24,9 @@ Chunk::~Chunk()
 	id.empty();
 }
 
-void Chunk::generate(Chunk* xNeighbour, Chunk* zNeighbour, Chunk* xzNeighbour)
+void Chunk::generate(Chunk* xNeighbour, Chunk* zNeighbour, Chunk* xzNeighbour, std::vector<Edit>* edits)
 {
-	// TODO: Add storage of modifications to base world and recreate them here
-	if (m_generated)
-		return;
+	if (m_generated) return;
 	m_generated = true;
 
 	float smooth_noise[CHUNK_SIZE][CHUNK_SIZE];
@@ -85,35 +83,56 @@ void Chunk::generate(Chunk* xNeighbour, Chunk* zNeighbour, Chunk* xzNeighbour)
 		}
 	}
 
+	bool empty = true;
 	for (int xIndex = 0; xIndex < CHUNK_SIZE; xIndex++)
 	{
 		for (int yIndex = 0; yIndex < CHUNK_SIZE; yIndex++)
 		{
 			for (int zIndex = 0; zIndex < CHUNK_SIZE; zIndex++)
 			{
-				int h = smooth_noise[xIndex][zIndex] * 15;
+				int h = CHUNK_SIZE * y + smooth_noise[xIndex][zIndex] * 15;
 				if (yIndex + h > 15) {
 					m_blocks[xIndex][yIndex][zIndex].type = Block::BlockType::Air;
 				}
 				else if (yIndex + h == 15) {
 					m_blocks[xIndex][yIndex][zIndex].type = Block::BlockType::Grass;
+					m_empty = false;
 				}
 				else if (yIndex + h > 12) {
 					m_blocks[xIndex][yIndex][zIndex].type = Block::BlockType::Dirt;
+					m_empty = false;
 				}
 				else {
 					m_blocks[xIndex][yIndex][zIndex].type = Block::BlockType::Stone;
+					m_empty = false;
 				}
 			}
+		}
+	}
+
+	for (auto edit : *edits) {
+		if (edit.chunkId == id) {
+			m_blocks[edit.x][edit.y][edit.z] = edit.type;
 		}
 	}
 }
 
 void Chunk::mesh()
 {
-	// TODO: Pass blocks of neighbouring chunks and avoid generating uneccesary faces at chunk boundaries
-	if (m_meshed)
+	if (m_empty) {
+		m_meshed = true;
+		vertices.clear();
+		indices.clear();
 		return;
+	}
+
+	if (m_meshed) return;
+	remesh();
+}
+
+void Chunk::remesh()
+{
+	// TODO: Pass blocks of neighbouring chunks and avoid generating uneccesary faces at chunk boundaries
 	m_meshed = true;
 
 	vertices.clear();
@@ -147,6 +166,91 @@ float Chunk::getSeed(int xIndex, int zIndex)
 Block* Chunk::getBlock(int xIndex, int yIndex, int zIndex)
 {
 	return &m_blocks[xIndex][yIndex][zIndex];
+}
+
+RayCastHit Chunk::getBlock(glm::vec3 origin, glm::vec3 direction, float maxDist)
+{
+	origin -= glm::vec3(x * CHUNK_SIZE, y * CHUNK_SIZE, z * CHUNK_SIZE);
+
+	int x = floor(origin.x);
+	int y = floor(origin.y);
+	int z = floor(origin.z);
+
+	float dx = direction.x;
+	float dy = direction.y;
+	float dz = direction.z;
+
+	if (dx == 0 && dy == 0 && dz == 0)
+		return { 0, 0, 0, -1 };
+
+	int stepX = dx >= 0 ? 1 : -1;
+	int stepY = dy >= 0 ? 1 : -1;
+	int stepZ = dz >= 0 ? 1 : -1;
+
+	float maxX = bound(origin.x, dx);
+	float maxY = bound(origin.y, dy);
+	float maxZ = bound(origin.z, dz);
+
+	float deltaX = stepX / dx;
+	float deltaY = stepY / dy;
+	float deltaZ = stepZ / dz;
+
+	int normalX = 0;
+	int normalY = 0;
+	int normalZ = 0;
+
+	while (stepX > 0 ? x < CHUNK_SIZE : x >= 0
+		&& stepY > 0 ? y < CHUNK_SIZE : y >= 0
+		&& stepZ > 0 ? z < CHUNK_SIZE : z >= 0) {
+
+		if (!(x < 0 || y < 0 || z < 0 || x >= CHUNK_SIZE || y >= CHUNK_SIZE || z >= CHUNK_SIZE))
+			if (m_blocks[x][y][z].type != Block::BlockType::Air)
+				return { true, x, y, z, normalX, normalY, normalZ };
+
+		if (maxX < maxY) {
+			if (maxX < maxZ) {
+				normalX = -stepX;
+				normalY = 0;
+				normalZ = 0;
+				if (maxX > maxDist) return { false, 0, 0, 0, 0, 0, 0 };
+				x += stepX;
+				maxX += deltaX;
+			}
+			else {
+				normalX = 0;
+				normalY = 0;
+				normalZ = -stepZ;
+				if (maxZ > maxDist) return { false, 0, 0, 0, 0, 0, 0 };
+				z += stepZ;
+				maxZ += deltaZ;
+			}
+		}
+		else {
+			if (maxY < maxZ) {
+				normalX = 0;
+				normalY = -stepY;
+				normalZ = 0;
+				if (maxY > maxDist) return { false, 0, 0, 0, 0, 0, 0 };
+				y += stepY;
+				maxY += deltaY;
+			}
+			else {
+				normalX = 0;
+				normalY = 0;
+				normalZ = -stepZ;
+				if (maxZ > maxDist) return { false, 0, 0, 0, 0, 0, 0 };
+				z += stepZ;
+				maxZ += deltaZ;
+			}
+		}
+	}
+
+	return { false, 0, 0, 0, normalX, normalY, normalZ };
+}
+
+void Chunk::setBlock(int x, int y, int z, Block::BlockType type)
+{
+	m_blocks[x][y][z].type = type;
 }
 
 std::string Chunk::getId(int x, int y, int z)
@@ -294,5 +398,16 @@ void Chunk::addBlockMesh(int xIndex, int yIndex, int zIndex)
 
 		indices.insert(std::end(indices), std::begin(newIndices), std::end(newIndices));
 		m_index += 4;
+	}
+}
+
+int Chunk::bound(float s, float ds)
+{
+	if (ds < 0) {
+		return bound(-s, -ds);
+	}
+	else {
+		s = s - int(s);
+		return (1 - s) / ds;
 	}
 }

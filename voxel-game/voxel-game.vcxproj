@@ -155,11 +155,13 @@
     <ClCompile Include="Block.cpp" />
     <ClCompile Include="Chunk.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="RayCastHit.h" />
     <ClCompile Include="ShaderProgram.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Block.h" />
     <ClInclude Include="Chunk.h" />
+    <ClInclude Include="Edit.h" />
     <ClInclude Include="ShaderProgram.h" />
     <ClInclude Include="stb_image.h" />
   </ItemGroup>

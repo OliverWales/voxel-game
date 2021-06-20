@@ -11,6 +11,8 @@
 #include <unordered_map>
 #include "ShaderProgram.h"
 #include "Chunk.h"
+#include "RayCastHit.h"
+#include "Edit.h"
 
 const unsigned int SCR_WIDTH = 1000;
 const unsigned int SCR_HEIGHT = 600;
@@ -30,18 +32,21 @@ glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
 // Chunks
 std::unordered_map<std::string, Chunk*> chunkMap;
-int playerChunkX = cameraPos.x / CHUNK_SIZE;
-int playerChunkY = cameraPos.y / CHUNK_SIZE;
-int playerChunkZ = cameraPos.z / CHUNK_SIZE;
+Chunk* playerChunk = new Chunk(0, 0, 0);
+RayCastHit lastRayCast;
+Chunk* lastRayCastChunk;
+std::vector<Edit> edits;
 
 // Timing
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void processMouseMove(GLFWwindow* window, double xPos, double yPos);
+void processMouseButton(GLFWwindow* window, int button, int action, int mods);
 void processKeyboardInput(GLFWwindow* window);
-void processMouseInput(GLFWwindow* window, double xPos, double yPos);
 void loadChunks();
+void rayCast();
 
 int main()
 {
@@ -61,7 +66,8 @@ int main()
     }
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    glfwSetCursorPosCallback(window, processMouseInput);
+    glfwSetCursorPosCallback(window, processMouseMove);
+    glfwSetMouseButtonCallback(window, processMouseButton);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     // Load OpenGL function pointers
@@ -119,7 +125,7 @@ int main()
     glm::mat4 projection = glm::mat4(1.0f);
 
     view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-    projection = glm::perspective(glm::radians(FOV), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
+    projection = glm::perspective(glm::radians(FOV),(float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
 
     unsigned int modelLoc = glGetUniformLocation(shaderId, "model");
     unsigned int viewLoc = glGetUniformLocation(shaderId, "view");
@@ -162,10 +168,16 @@ int main()
                 glEnableVertexAttribArray(2);
 
                 glBindBuffer(GL_ARRAY_BUFFER, VBO);
-                glBufferData(GL_ARRAY_BUFFER, chunk->vertices.size() * sizeof(float), chunk->vertices.data(), GL_STATIC_DRAW);
+                glBufferData(GL_ARRAY_BUFFER,
+                    chunk->vertices.size() * sizeof(float),
+                    chunk->vertices.data(),
+                    GL_STATIC_DRAW);
 
                 glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-                glBufferData(GL_ELEMENT_ARRAY_BUFFER, chunk->indices.size() * sizeof(unsigned int), chunk->indices.data(), GL_STATIC_DRAW);
+                glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                    chunk->indices.size() * sizeof(unsigned int),
+                    chunk->indices.data(),
+                    GL_STATIC_DRAW);
 
                 glBindVertexArray(VAO);
                 glDrawElements(GL_TRIANGLES, chunk->indices.size(), GL_UNSIGNED_INT, 0);
@@ -191,9 +203,11 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 
 void processKeyboardInput(GLFWwindow* window)
 {
+    // Exit
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
+    // Move camera
     float cameraSpeed = 3.0f * deltaTime;
     if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
         cameraSpeed *= 5;
@@ -209,16 +223,31 @@ void processKeyboardInput(GLFWwindow* window)
         cameraPos += cameraSpeed * cameraUp;
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
         cameraPos -= cameraSpeed * cameraUp;
+    
+    // Pring debug info
+    if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) {
+        std::cout << "Cam pos: (" << cameraPos.x << ", " << cameraPos.y << ", " << cameraPos.z << ")\n";
+        std::cout << "Cam dir: (" << cameraFront.x << ", " << cameraFront.y << ", " << cameraFront.z << ")\n";
+        std::cout << "Cam chunk: (" << playerChunk->x << ", " << playerChunk->y << ", " << playerChunk->z << ")\n";
+        std::cout << "Ray chunk: (" << lastRayCastChunk->x << ", " << lastRayCastChunk->y << ", " << lastRayCastChunk->z << ")\n";
+    }
 
-    if (playerChunkX != (int)cameraPos.x / CHUNK_SIZE || playerChunkY != (int)cameraPos.y / CHUNK_SIZE || playerChunkZ != (int)cameraPos.z / CHUNK_SIZE) {
-        playerChunkX = cameraPos.x / CHUNK_SIZE;
-        playerChunkY = cameraPos.y / CHUNK_SIZE;
-        playerChunkZ = cameraPos.z / CHUNK_SIZE;
+    // Update chunks on player move
+    int playerChunkX = floor(cameraPos.x / CHUNK_SIZE);
+    int playerChunkY = floor(cameraPos.y / CHUNK_SIZE);
+    int playerChunkZ = floor(cameraPos.z / CHUNK_SIZE);
+
+    auto it = chunkMap.find(Chunk::getId(playerChunkX, playerChunkY, playerChunkZ));
+    if (it != chunkMap.end() && playerChunk != it->second) {
+        playerChunk = it->second;
         loadChunks();
     }
+
+    // Re-cast ray
+    rayCast();
 }
 
-void processMouseInput(GLFWwindow* window, double xPos, double yPos)
+void processMouseMove(GLFWwindow* window, double xPos, double yPos)
 {
     if (firstMouse)
     {
@@ -249,20 +278,87 @@ void processMouseInput(GLFWwindow* window, double xPos, double yPos)
     front.y = sin(glm::radians(pitch));
     front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
     cameraFront = glm::normalize(front);
+
+    // Re-cast ray
+    rayCast();
+}
+
+void processMouseButton(GLFWwindow* window, int button, int action, int mods)
+{
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+        if (lastRayCast.hit) {
+            int x = lastRayCast.xIndex;
+            int y = lastRayCast.yIndex;
+            int z = lastRayCast.zIndex;
+
+            lastRayCastChunk->setBlock(x, y, z, Block::BlockType::Air);
+            edits.push_back({ lastRayCastChunk->id, x, y, z, Block::BlockType::Air });
+            lastRayCastChunk->remesh();
+        }
+    }
+
+    if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
+        if (lastRayCast.hit) {
+            int x = lastRayCast.xIndex + lastRayCast.xNormal;
+            int y = lastRayCast.yIndex + lastRayCast.yNormal;
+            int z = lastRayCast.zIndex + lastRayCast.zNormal;
+
+            if (x < 0 || y < 0 || z < 0 || x >= CHUNK_SIZE || y >= CHUNK_SIZE || z >= CHUNK_SIZE) {
+                x = (x + CHUNK_SIZE) % CHUNK_SIZE;
+                y = (y + CHUNK_SIZE) % CHUNK_SIZE;
+                z = (z + CHUNK_SIZE) % CHUNK_SIZE;
+
+                std::string id = Chunk::getId(
+                    lastRayCastChunk->x + lastRayCast.xNormal,
+                    lastRayCastChunk->y + lastRayCast.yNormal,
+                    lastRayCastChunk->z + lastRayCast.zNormal);
+
+                auto it = chunkMap.find(id);
+                if (it != chunkMap.end()) {
+                    auto chunk = it->second;
+                    if (chunk->getBlock(x, y, z)->type == Block::BlockType::Air) {
+                        chunk->setBlock(x, y, z, Block::BlockType::Stone);
+                        edits.push_back({ chunk->id, x, y, z, Block::BlockType::Stone });
+                        chunk->remesh();
+                    }
+                }
+                else {
+                    std::cout << "Failed to find chunk " << id << "\n";
+                }
+            }
+            else {
+                if (lastRayCastChunk->getBlock(x, y, z)->type == Block::BlockType::Air) {
+                    lastRayCastChunk->setBlock(x, y, z, Block::BlockType::Stone);
+                    edits.push_back({ lastRayCastChunk->id, x, y, z, Block::BlockType::Stone });
+                    lastRayCastChunk->remesh();
+                }
+            }
+        }
+    }
 }
 
 void loadChunks() {
     // Seed chunks
-    int range = 5;
+    int range = 4;
+
+    int playerChunkX = floor(cameraPos.x / CHUNK_SIZE);
+    int playerChunkY = floor(cameraPos.y / CHUNK_SIZE);
+    int playerChunkZ = floor(cameraPos.z / CHUNK_SIZE);
+
     for (int x = -range; x < range + 1; x++) {
-        for (int z = -range; z < range + 1; z++) {
-            std::string id = Chunk::getId(playerChunkX + x, 0, playerChunkZ + z);
-            if (chunkMap.find(id) == chunkMap.end()) {
-                Chunk* chunk = new Chunk(playerChunkX + x, 0, playerChunkZ + z);
-                chunkMap.insert(std::pair<std::string, Chunk*>(chunk->id, chunk));
+        for (int y = -range; y < range + 1; y++) {
+            for (int z = -range; z < range + 1; z++) {
+                std::string id = Chunk::getId(playerChunkX + x, playerChunkY + y, playerChunkZ + z);
+                if (chunkMap.find(id) == chunkMap.end()) {
+                    Chunk* chunk = new Chunk(playerChunkX + x, playerChunkY + y, playerChunkZ + z);
+                    chunkMap.insert(std::pair<std::string, Chunk*>(chunk->id, chunk));
+                }
             }
         }
     }
+
+    std::string playerChunkId = Chunk::getId(playerChunkX, playerChunkY, playerChunkZ);
+    playerChunk = chunkMap.find(playerChunkId)->second;
 
     // Generate and mesh chunks
     for (auto const& chunkPair : chunkMap) {
@@ -272,7 +368,7 @@ void loadChunks() {
         auto xzNeighbour = chunkMap.find(Chunk::getId(chunk->x + 1, chunk->y, chunk->z + 1));
 
         if (xNeighbour != chunkMap.end() && zNeighbour != chunkMap.end() && xzNeighbour != chunkMap.end()) {
-            chunk->generate(xNeighbour->second, zNeighbour->second, xzNeighbour->second);
+            chunk->generate(xNeighbour->second, zNeighbour->second, xzNeighbour->second, &edits);
             chunk->mesh();
         }
     }
@@ -281,10 +377,32 @@ void loadChunks() {
     for (auto it = chunkMap.cbegin(), next_it = it; it != chunkMap.cend(); it = next_it)
     {
         ++next_it;
-        if (abs(it->second->x - playerChunkX) > 2 * range || abs(it->second->z - playerChunkZ) > 2 * range)
-        {
+        if (abs(it->second->x - playerChunk->x) > range + 2
+            || abs(it->second->y - playerChunk->y) > range + 2
+            || abs(it->second->z - playerChunk->z) > range + 2) {
             delete it->second;
             chunkMap.erase(it);
+        }
+    }
+}
+
+void rayCast() {
+    lastRayCast = playerChunk->getBlock(cameraPos, cameraFront, 10);
+    lastRayCastChunk = playerChunk;
+    while (!lastRayCast.hit && (lastRayCast.xNormal != 0 || lastRayCast.yNormal != 0 || lastRayCast.zNormal != 0)) {
+        auto nextChunkId = Chunk::getId(
+            lastRayCastChunk->x - lastRayCast.xNormal,
+            lastRayCastChunk->y - lastRayCast.yNormal,
+            lastRayCastChunk->z - lastRayCast.zNormal);
+
+        auto it = chunkMap.find(nextChunkId);
+        if (it != chunkMap.end()) {
+            auto nextChunk = it->second;
+            lastRayCast = nextChunk->getBlock(cameraPos, cameraFront, 10);
+            lastRayCastChunk = nextChunk;
+        }
+        else {
+            break;
         }
     }
 }
